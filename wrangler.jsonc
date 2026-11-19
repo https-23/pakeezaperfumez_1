@@ -5,13 +5,19 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*", "/admin", "/admin/"]
+    "run_worker_first": ["/api/*", "/uploads/*", "/admin", "/admin/"]
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "pakeezah-db",
       "database_id": "faae72c5-fa52-420c-a123-9f9a2722ad78"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "pakeezah-images"
     }
   ]
 }

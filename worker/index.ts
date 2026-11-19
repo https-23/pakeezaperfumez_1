@@ -13,6 +13,20 @@ interface D1Database {
   batch<T = unknown>(statements: D1PreparedStatement[]): Promise<T[]>;
 }
 
+interface R2ObjectBody {
+  body: ReadableStream;
+  httpMetadata?: { contentType?: string };
+}
+
+interface R2Bucket {
+  put(
+    key: string,
+    value: ArrayBuffer | ArrayBufferView | ReadableStream | string,
+    options?: { httpMetadata?: { contentType?: string } }
+  ): Promise<unknown>;
+  get(key: string): Promise<R2ObjectBody | null>;
+}
+
 interface Fetcher {
   fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
 }
@@ -20,6 +34,7 @@ interface Fetcher {
 interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
+  IMAGES?: R2Bucket;
   ADMIN_PASSWORD?: string;
   RAZORPAY_KEY_SECRET?: string;
 }
@@ -151,7 +166,12 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
 
   // --- Public Storefront APIs ---
   if (method === 'GET' && pathname === '/api/health') {
-    return json({ status: 'ok', brand: 'Pakeeza Perfumez', runtime: 'cloudflare-d1' });
+    return json({
+      status: 'ok',
+      brand: 'Pakeeza Perfumez',
+      runtime: 'cloudflare-d1',
+      r2Connected: Boolean(env.IMAGES),
+    });
   }
 
   if (method === 'GET' && pathname === '/api/products') {
@@ -465,16 +485,38 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
       });
     }
 
+    // --- Phase 2: Cloudflare R2 Product Image Upload ---
     if (method === 'POST' && pathname === '/api/admin/upload') {
       const body = (await request.json()) as Record<string, unknown>;
       const dataUrl = body.dataUrl;
       if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
         return json({ error: 'Please select a valid image file.' }, 400);
       }
-      if (dataUrl.length > 700_000) {
-        return json({ error: 'Image too large for Phase 1 (keep under 500KB). R2 storage will be added in Phase 2.' }, 400);
+
+      const match = dataUrl.match(/^data:(image\/(png|jpeg|jpg|webp));base64,(.+)$/i);
+      if (!match) {
+        return json({ error: 'Unsupported image format. Use JPG, PNG, or WebP.' }, 400);
       }
-      return json({ url: dataUrl });
+
+      if (!env.IMAGES) {
+        return json({ error: 'R2 IMAGES bucket is not connected yet.' }, 500);
+      }
+
+      const contentType = match[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : match[1].toLowerCase();
+      const ext = match[2].toLowerCase() === 'jpeg' ? 'jpg' : match[2].toLowerCase();
+      const baseName = String(body.filename || 'perfume')
+        .replace(/[^a-zA-Z0-9_-]/g, '')
+        .slice(0, 30);
+      const key = `${baseName || 'perfume'}-${Date.now()}.${ext}`;
+
+      const binary = atob(match[3]);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      await env.IMAGES.put(key, bytes, { httpMetadata: { contentType } });
+      return json({ url: `/uploads/${key}` });
     }
 
     if (method === 'POST' && pathname === '/api/admin/products') {
@@ -616,7 +658,20 @@ export default {
         return await handleApi(request, env, url);
       }
 
-      if (url.pathname === '/admin' || url.pathname === '/admin/') {
+      if (url.pathname.startsWith('/uploads/')) {
+        if (!env.IMAGES) return new Response('Storage not configured', { status: 500 });
+        const key = decodeURIComponent(url.pathname.slice('/uploads/'.length));
+        const object = await env.IMAGES.get(key);
+        if (!object) return new Response('Image not found', { status: 404 });
+        return new Response(object.body, {
+          headers: {
+            'Content-Type': object.httpMetadata?.contentType || 'image/jpeg',
+            'Cache-Control': 'public, max-age=31536000, immutable',
+          },
+        });
+      }
+
+      if (url.pathname === '/admin' || url.pathname === '/admin/' || url.pathname === '/admin.html') {
         return env.ASSETS.fetch(new URL('/admin.html', request.url));
       }
 
