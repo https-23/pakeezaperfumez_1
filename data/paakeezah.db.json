@@ -1,0 +1,621 @@
+{
+  "products": [
+    {
+      "id": "prod-royal-assam-oud",
+      "name": "Royal Assam Oud",
+      "slug": "royal-assam-oud",
+      "tagline": "Aged wild agarwood oil with smoky resin warmth",
+      "description": "Slow-distilled in traditional copper deg-bhapka vessels using aged Assam agarwood chips. Deep, resinous, and commanding with an unmistakable golden sillage that lingers well past midnight.",
+      "type": "Attar",
+      "scentFamily": "Oud",
+      "occasion": "Party",
+      "gender": "Unisex",
+      "images": [
+        "/src/assets/images/product_royal_oud_1795085479966.jpg",
+        "/src/assets/images/hero_royal_oud_1795085480694.jpg",
+        "/src/assets/images/craft_distillation_1795085480741.jpg"
+      ],
+      "variants": [
+        {
+          "id": "v-rao-3",
+          "label": "3ml",
+          "price": 499,
+          "compareAtPrice": 599,
+          "stock": 28,
+          "sku": "PKZ-RAO-03"
+        },
+        {
+          "id": "v-rao-6",
+          "label": "6ml",
+          "price": 899,
+          "compareAtPrice": 1099,
+          "stock": 19,
+          "sku": "PKZ-RAO-06"
+        },
+        {
+          "id": "v-rao-12",
+          "label": "12ml",
+          "price": 1599,
+          "compareAtPrice": 1899,
+          "stock": 11,
+          "sku": "PKZ-RAO-12"
+        }
+      ],
+      "notes": {
+        "top": [
+          "Smoky Cardamom",
+          "Black Pepper",
+          "Saffron Mist"
+        ],
+        "heart": [
+          "Aged Assam Agarwood",
+          "Cypriol",
+          "Guaiac Wood"
+        ],
+        "base": [
+          "Labdanum Resin",
+          "Dark Amber",
+          "Birch Tar"
+        ]
+      },
+      "longevityHours": 18,
+      "projectionScore": 9,
+      "isBestseller": true,
+      "isOutOfStock": false,
+      "createdAt": "2026-11-19T10:57:07.004Z"
+    },
+    {
+      "id": "prod-kashmiri-zafran",
+      "name": "Kashmiri Zafran Gold",
+      "slug": "kashmiri-zafran-gold",
+      "tagline": "Pampore saffron threads steeped in warm amberwood",
+      "description": "Pure crimson Kashmiri saffron threads macerated over toasted sandalwood oil and subtle leather nuances. Crafted for celebratory evenings, nikah ceremonies, and winter wear.",
+      "type": "Attar",
+      "scentFamily": "Oud",
+      "occasion": "Festive",
+      "gender": "Unisex",
+      "images": [
+        "/src/assets/images/product_kashmiri_saffron_1795085480845.jpg",
+        "/src/assets/images/craft_distillation_1795085480741.jpg"
+      ],
+      "variants": [
+        {
+          "id": "v-kzg-3",
+          "label": "3ml",
+          "price": 349,
+          "compareAtPrice": 449,
+          "stock": 34,
+          "sku": "PKZ-KZG-03"
+        },
+        {
+          "id": "v-kzg-6",
+          "label": "6ml",
+          "price": 649,
+          "compareAtPrice": 799,
+          "stock": 22,
+          "sku": "PKZ-KZG-06"
+        },
+        {
+          "id": "v-kzg-12",
+          "label": "12ml",
+          "price": 1149,
+          "compareAtPrice": 1399,
+          "stock": 14,
+          "sku": "PKZ-KZG-12"
+        }
+      ],
+      "notes": {
+        "top": [
+          "Pampore Saffron",
+          "Bergamot Zest",
+          "Nutmeg"
+        ],
+        "heart": [
+          "Warm Amber",
+          "Suede Accord",
+          "Taif Rose"
+        ],
+        "base": [
+          "Sweet Oud",
+          "Mysore Sandalwood",
+          "Benzoin"
+        ]
+      },
+      "longevityHours": 14,
+      "projectionScore": 8,
+      "isBestseller": true,
+      "isOutOfStock": false,
+      "createdAt": "2026-11-19T10:57:07.004Z"
+    },
+    {
+      "id": "prod-damask-rose",
+      "name": "Damask Rose Elixir",
+      "slug": "damask-rose-elixir",
+      "tagline": "Velvet crimson rose petals over spiced patchouli",
+      "description": "A rich, modern extrait de parfum marrying fresh morning-picked damask rose with velvet praline, pink pepper, and dark Indonesian patchouli.",
+      "type": "Perfume",
+      "scentFamily": "Floral",
+      "occasion": "Party",
+      "gender": "Women",
+      "images": [
+        "/src/assets/images/product_damask_rose_1795085480483.jpg",
+        "/src/assets/images/craft_distillation_1795085480741.jpg"
+      ],
+      "variants": [
+        {
+          "id": "v-dre-12",
+          "label": "12ml",
+          "price": 549,
+          "compareAtPrice": 649,
+          "stock": 25,
+          "sku": "PKZ-DRE-12"
+        },
+        {
+          "id": "v-dre-30",
+          "label": "30ml",
+          "price": 1199,
+          "compareAtPrice": 1499,
+          "stock": 16,
+          "sku": "PKZ-DRE-30"
+        },
+        {
+          "id": "v-dre-50",
+          "label": "50ml",
+          "price": 1799,
+          "compareAtPrice": 2199,
+          "stock": 9,
+          "sku": "PKZ-DRE-50"
+        }
+      ],
+      "notes": {
+        "top": [
+          "Pink Pepper",
+          "Lychee Dew",
+          "Mandarin"
+        ],
+        "heart": [
+          "Damask Rose Absolute",
+          "Peony",
+          "Geranium"
+        ],
+        "base": [
+          "Indonesian Patchouli",
+          "Cashmere Musk",
+          "Vanilla Bean"
+        ]
+      },
+      "longevityHours": 12,
+      "projectionScore": 8,
+      "isBestseller": true,
+      "isOutOfStock": false,
+      "createdAt": "2026-11-19T10:57:07.004Z"
+    },
+    {
+      "id": "prod-taharat-musk",
+      "name": "Taharat White Musk",
+      "slug": "taharat-white-musk",
+      "tagline": "Clean cotton-soft skin musk with lotus clarity",
+      "description": "An alcohol-free, non-intrusive pure white musk crafted for everyday poise, prayer, and close-quarters office settings. Silky, powdery, and calming from dawn to dusk.",
+      "type": "Attar",
+      "scentFamily": "Musk",
+      "occasion": "Office",
+      "gender": "Unisex",
+      "images": [
+        "/src/assets/images/product_white_musk_1795085480001.jpg"
+      ],
+      "variants": [
+        {
+          "id": "v-twm-3",
+          "label": "3ml",
+          "price": 249,
+          "compareAtPrice": 299,
+          "stock": 45,
+          "sku": "PKZ-TWM-03"
+        },
+        {
+          "id": "v-twm-6",
+          "label": "6ml",
+          "price": 449,
+          "compareAtPrice": 549,
+          "stock": 30,
+          "sku": "PKZ-TWM-06"
+        },
+        {
+          "id": "v-twm-12",
+          "label": "12ml",
+          "price": 799,
+          "compareAtPrice": 949,
+          "stock": 20,
+          "sku": "PKZ-TWM-12"
+        }
+      ],
+      "notes": {
+        "top": [
+          "White Lotus",
+          "Aldehydic Linen",
+          "Pear Blossom"
+        ],
+        "heart": [
+          "Egyptian White Musk",
+          "Orris Butter",
+          "Jasmine Tea"
+        ],
+        "base": [
+          "Sandalwood Cream",
+          "Ambrette Seed",
+          "Clean Cedar"
+        ]
+      },
+      "longevityHours": 10,
+      "projectionScore": 6,
+      "isBestseller": false,
+      "isOutOfStock": false,
+      "createdAt": "2026-11-19T10:57:07.004Z"
+    },
+    {
+      "id": "prod-mysore-sandal",
+      "name": "Mysore Sandal & Amber",
+      "slug": "mysore-sandal-amber",
+      "tagline": "Creamy aged heartwood fused with golden resin",
+      "description": "Rooted in traditional Kannauj perfumery, this meditative blend balances buttery aged sandalwood heartwood with dry cedar shavings and sunlit labdanum amber.",
+      "type": "Attar",
+      "scentFamily": "Woody",
+      "occasion": "Daily",
+      "gender": "Men",
+      "images": [
+        "/src/assets/images/product_sandalwood_amber_1795085480562.jpg",
+        "/src/assets/images/craft_distillation_1795085480741.jpg"
+      ],
+      "variants": [
+        {
+          "id": "v-msa-3",
+          "label": "3ml",
+          "price": 299,
+          "compareAtPrice": 379,
+          "stock": 32,
+          "sku": "PKZ-MSA-03"
+        },
+        {
+          "id": "v-msa-6",
+          "label": "6ml",
+          "price": 549,
+          "compareAtPrice": 699,
+          "stock": 24,
+          "sku": "PKZ-MSA-06"
+        },
+        {
+          "id": "v-msa-12",
+          "label": "12ml",
+          "price": 999,
+          "compareAtPrice": 1249,
+          "stock": 15,
+          "sku": "PKZ-MSA-12"
+        }
+      ],
+      "notes": {
+        "top": [
+          "Dry Cardamom",
+          "Elemi Resin",
+          "Bitter Orange"
+        ],
+        "heart": [
+          "Mysore Sandalwood",
+          "Atlas Cedar",
+          "Nutmeg"
+        ],
+        "base": [
+          "Golden Amber",
+          "Tonka Bean",
+          "Haitian Vetiver"
+        ]
+      },
+      "longevityHours": 14,
+      "projectionScore": 7,
+      "isBestseller": true,
+      "isOutOfStock": false,
+      "createdAt": "2026-11-19T10:57:07.004Z"
+    },
+    {
+      "id": "prod-ameer-reserve",
+      "name": "Ameer Al Oud Reserve",
+      "slug": "ameer-al-oud-reserve",
+      "tagline": "Smoked vanilla, burnt sugar, and royal dark oud",
+      "description": "Our signature nocturnal Extrait de Parfum at 32% oil concentration. Rich roasted oud heart wrapped in Madagascar vanilla smoke and warm cardamom spice.",
+      "type": "Perfume",
+      "scentFamily": "Oud",
+      "occasion": "Party",
+      "gender": "Men",
+      "images": [
+        "/src/assets/images/hero_royal_oud_1795085480694.jpg",
+        "/src/assets/images/product_royal_oud_1795085479966.jpg"
+      ],
+      "variants": [
+        {
+          "id": "v-aor-12",
+          "label": "12ml",
+          "price": 699,
+          "compareAtPrice": 849,
+          "stock": 18,
+          "sku": "PKZ-AOR-12"
+        },
+        {
+          "id": "v-aor-30",
+          "label": "30ml",
+          "price": 1499,
+          "compareAtPrice": 1799,
+          "stock": 12,
+          "sku": "PKZ-AOR-30"
+        },
+        {
+          "id": "v-aor-50",
+          "label": "50ml",
+          "price": 2299,
+          "compareAtPrice": 2699,
+          "stock": 8,
+          "sku": "PKZ-AOR-50"
+        }
+      ],
+      "notes": {
+        "top": [
+          "Roasted Cinnamon",
+          "Nutmeg",
+          "Dark Plum"
+        ],
+        "heart": [
+          "Cambodian Oud",
+          "Smoked Caramel",
+          "Incense"
+        ],
+        "base": [
+          "Madagascar Vanilla",
+          "Ambergris Accord",
+          "Leather"
+        ]
+      },
+      "longevityHours": 16,
+      "projectionScore": 10,
+      "isBestseller": false,
+      "isOutOfStock": false,
+      "createdAt": "2026-11-19T10:57:07.004Z"
+    },
+    {
+      "id": "prod-kannauj-vetiver",
+      "name": "Kannauj Vetiver Mist",
+      "slug": "kannauj-vetiver-mist",
+      "tagline": "Monsoon rain on earthen roots and crushed citrus",
+      "description": "Distilled from wild khus roots in copper stills, brightened with crushed green bergamot and mint leaf. Crisp, cooling, and grounded for Indian summers.",
+      "type": "Attar",
+      "scentFamily": "Fresh",
+      "occasion": "Office",
+      "gender": "Unisex",
+      "images": [
+        "/src/assets/images/craft_distillation_1795085480741.jpg",
+        "/src/assets/images/product_white_musk_1795085480001.jpg"
+      ],
+      "variants": [
+        {
+          "id": "v-kvm-3",
+          "label": "3ml",
+          "price": 229,
+          "compareAtPrice": 299,
+          "stock": 40,
+          "sku": "PKZ-KVM-03"
+        },
+        {
+          "id": "v-kvm-6",
+          "label": "6ml",
+          "price": 399,
+          "compareAtPrice": 499,
+          "stock": 26,
+          "sku": "PKZ-KVM-06"
+        },
+        {
+          "id": "v-kvm-12",
+          "label": "12ml",
+          "price": 729,
+          "compareAtPrice": 899,
+          "stock": 18,
+          "sku": "PKZ-KVM-12"
+        }
+      ],
+      "notes": {
+        "top": [
+          "Calabrian Bergamot",
+          "Crushed Mint",
+          "Green Mandarin"
+        ],
+        "heart": [
+          "Wild Khus Vetiver",
+          "Petrichor Accord",
+          "Cypress"
+        ],
+        "base": [
+          "Oakmoss",
+          "White Cedar",
+          "Sheer Musk"
+        ]
+      },
+      "longevityHours": 10,
+      "projectionScore": 7,
+      "isBestseller": false,
+      "isOutOfStock": false,
+      "createdAt": "2026-11-19T10:57:07.004Z"
+    }
+  ],
+  "orders": [
+    {
+      "id": "PKZ-1001",
+      "customerName": "Zaid Ansari",
+      "phone": "9876543210",
+      "address": "14, Hazratganj Residency, MG Marg",
+      "city": "Lucknow",
+      "pincode": "226001",
+      "items": [
+        {
+          "name": "Royal Assam Oud",
+          "subtitle": "6ml · Attar",
+          "price": 899,
+          "quantity": 1,
+          "image": "/src/assets/images/product_royal_oud_1795085479966.jpg",
+          "productId": "prod-royal-assam-oud",
+          "variantId": "v-rao-6"
+        },
+        {
+          "name": "Taharat White Musk",
+          "subtitle": "3ml · Attar",
+          "price": 249,
+          "quantity": 1,
+          "image": "/src/assets/images/product_white_musk_1795085480001.jpg",
+          "productId": "prod-taharat-musk",
+          "variantId": "v-twm-3"
+        }
+      ],
+      "subtotal": 1148,
+      "couponCode": "WELCOME10",
+      "couponDiscount": 115,
+      "prepaidDiscount": 52,
+      "shippingFee": 0,
+      "total": 981,
+      "paymentMethod": "prepaid",
+      "advancePaid": 981,
+      "balanceDue": 0,
+      "paymentStatus": "Paid",
+      "paymentRef": "pay_RzpPKZ1001882",
+      "orderStatus": "Shipped",
+      "courierName": "Delhivery Express",
+      "trackingNumber": "DLV784920145IN",
+      "trackingUrl": "https://www.delhivery.com/track/package/DLV784920145IN",
+      "createdAt": "2026-11-16T11:20:00.000Z",
+      "updatedAt": "2026-11-18T14:15:00.000Z"
+    },
+    {
+      "id": "PKZ-1002",
+      "customerName": "Meera Kapoor",
+      "phone": "9820112233",
+      "address": "402, Silver Oak Apartments, Bandra West",
+      "city": "Mumbai",
+      "pincode": "400050",
+      "items": [
+        {
+          "name": "Custom 5-Attar Sample Kit",
+          "subtitle": "5 × 3ml Discovery Box",
+          "price": 499,
+          "quantity": 1,
+          "image": "/src/assets/images/craft_distillation_1795085480741.jpg",
+          "kitItems": [
+            {
+              "productId": "prod-royal-assam-oud",
+              "name": "Royal Assam Oud",
+              "scentFamily": "Oud"
+            },
+            {
+              "productId": "prod-kashmiri-zafran",
+              "name": "Kashmiri Zafran Gold",
+              "scentFamily": "Oud"
+            },
+            {
+              "productId": "prod-taharat-musk",
+              "name": "Taharat White Musk",
+              "scentFamily": "Musk"
+            },
+            {
+              "productId": "prod-mysore-sandal",
+              "name": "Mysore Sandal & Amber",
+              "scentFamily": "Woody"
+            },
+            {
+              "productId": "prod-kannauj-vetiver",
+              "name": "Kannauj Vetiver Mist",
+              "scentFamily": "Fresh"
+            }
+          ]
+        }
+      ],
+      "subtotal": 499,
+      "couponDiscount": 0,
+      "prepaidDiscount": 0,
+      "shippingFee": 79,
+      "total": 578,
+      "paymentMethod": "partial_cod",
+      "advancePaid": 99,
+      "balanceDue": 479,
+      "paymentStatus": "Partial COD",
+      "paymentRef": "pay_AdvPKZ1002914",
+      "orderStatus": "Packed",
+      "courierName": "Shiprocket Priority",
+      "trackingNumber": "SR904218831IN",
+      "trackingUrl": "https://shiprocket.co/tracking/SR904218831IN",
+      "createdAt": "2026-11-18T09:05:00.000Z",
+      "updatedAt": "2026-11-19T08:00:00.000Z"
+    }
+  ],
+  "coupons": [
+    {
+      "code": "EID15",
+      "discountType": "percent",
+      "value": 15,
+      "minOrder": 799,
+      "isActive": true,
+      "description": "Festive Celebration — 15% Off on orders ₹799+"
+    },
+    {
+      "code": "WELCOME10",
+      "discountType": "percent",
+      "value": 10,
+      "minOrder": 499,
+      "isActive": true,
+      "description": "First Order Welcome — 10% Off on orders ₹499+"
+    },
+    {
+      "code": "OUD200",
+      "discountType": "flat",
+      "value": 200,
+      "minOrder": 1299,
+      "isActive": true,
+      "description": "Flat ₹200 Off on luxury orders ₹1,299+"
+    }
+  ],
+  "reviews": [
+    {
+      "id": "rev-1",
+      "productId": "prod-royal-assam-oud",
+      "authorName": "Imran Qureshi",
+      "city": "Lucknow",
+      "rating": 5,
+      "comment": "Applied two drops of Royal Assam Oud at 9 AM before a wedding and could still smell the warm resin on my sherwani collar the next afternoon.",
+      "verified": true,
+      "createdAt": "2026-10-14T10:30:00.000Z"
+    },
+    {
+      "id": "rev-2",
+      "productId": "prod-kashmiri-zafran",
+      "authorName": "Ayesha Siddiqui",
+      "city": "Hyderabad",
+      "rating": 5,
+      "comment": "Authentic Pampore saffron opening without any synthetic harshness. The brass roll-on vial feels substantial and zero leakage in transit.",
+      "verified": true,
+      "createdAt": "2026-10-22T15:45:00.000Z"
+    },
+    {
+      "id": "rev-3",
+      "productId": "prod-damask-rose",
+      "authorName": "Rohan Malhotra",
+      "city": "New Delhi",
+      "rating": 5,
+      "comment": "Gifted the 30ml Damask Rose Elixir to my wife — deep velvet rose that settles into warm vanilla and patchouli. Easily outperforms designer bottles thrice the price.",
+      "verified": true,
+      "createdAt": "2026-11-01T18:10:00.000Z"
+    },
+    {
+      "id": "rev-4",
+      "productId": "prod-taharat-musk",
+      "authorName": "Faisal Khan",
+      "city": "Mumbai",
+      "rating": 5,
+      "comment": "Clean, serene, and completely alcohol-free. My daily office staple in humid Mumbai weather.",
+      "verified": true,
+      "createdAt": "2026-11-05T09:20:00.000Z"
+    }
+  ],
+  "adminSessions": {}
+}

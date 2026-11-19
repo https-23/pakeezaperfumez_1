@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0D0D0D"/>
+  <rect x="44" y="44" width="424" height="424" rx="72" fill="none" stroke="#D4AF37" stroke-opacity="0.35" stroke-width="3"/>
+  <path d="M256 108 L292 152 L256 176 L220 152 Z" fill="none" stroke="#D4AF37" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M204 196 H308 L334 252 L310 388 H202 L178 252 Z" fill="none" stroke="#D4AF37" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M214 276 Q256 260 298 276 L286 364 H226 Z" fill="#D4AF37" fill-opacity="0.22"/>
+  <text x="256" y="332" text-anchor="middle" font-family="Georgia, serif" font-size="68" font-weight="bold" fill="#D4AF37">P</text>
+</svg>

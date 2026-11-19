@@ -1,0 +1,8 @@
+{
+  "name": "Pakeeza Perfumez",
+  "description": "Luxury artisanal Indian attars, pure agarwood oud oils, and extrait de parfum crafted in small batches.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
