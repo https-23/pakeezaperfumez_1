@@ -1,0 +1,17 @@
+{
+  "name": "pakeezaperfumez-1",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-01-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/admin", "/admin/"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pakeezah-db",
+      "database_id": "faae72c5-fa52-420c-a123-9f9a2722ad78"
+    }
+  ]
+}
