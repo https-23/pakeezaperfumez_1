@@ -9,7 +9,7 @@ export function formatINR(amount: number): string {
 export const WHATSAPP_NUMBER = '919876543210';
 
 export function buildWhatsAppLink(message: string): string {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  return `https://api.whatsapp.com/send/?text=${encodeURIComponent(message)}`;
 }
 
 export const FREE_SHIPPING_THRESHOLD = 999;

@@ -10,7 +10,7 @@ interface TrackOrderViewProps {
 const STEPS: OrderStatus[] = ['Pending', 'Packed', 'Shipped', 'Delivered'];
 
 export const TrackOrderView: React.FC<TrackOrderViewProps> = ({ initialQuery = '' }) => {
-  const [query, setQuery] = useState(initialQuery || 'PKZ-1001');
+  const [query, setQuery] = useState(initialQuery);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,11 +37,9 @@ export const TrackOrderView: React.FC<TrackOrderViewProps> = ({ initialQuery = '
   };
 
   useEffect(() => {
-    if (initialQuery) {
+    if (initialQuery.trim()) {
       setQuery(initialQuery);
       runLookup(initialQuery);
-    } else {
-      runLookup('PKZ-1001');
     }
   }, [initialQuery]);
 
@@ -60,7 +58,7 @@ export const TrackOrderView: React.FC<TrackOrderViewProps> = ({ initialQuery = '
           Track Your Pakeeza Perfumez Order
         </h1>
         <p className="mt-2 text-sm text-[#A19D94]">
-          Enter your Order ID (e.g. PKZ-1001) or registered 10-digit mobile number.
+          Enter your Order ID or registered 10-digit mobile number to check live dispatch status.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -70,7 +68,7 @@ export const TrackOrderView: React.FC<TrackOrderViewProps> = ({ initialQuery = '
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Order ID (PKZ-1001) or Phone Number"
+              placeholder="Order ID (e.g. PKZ-1001) or 10-digit Phone Number"
               className="w-full border border-white/15 bg-[#121214] py-3 pr-4 pl-10 text-sm text-[#F5F2EB] placeholder:text-[#A19D94]/60 focus:border-[#D4AF37] focus:outline-none"
             />
           </div>
@@ -82,30 +80,6 @@ export const TrackOrderView: React.FC<TrackOrderViewProps> = ({ initialQuery = '
             {loading ? 'Checking...' : 'Track Order'}
           </button>
         </form>
-
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#A19D94]">
-          <span>Sample orders:</span>
-          <button
-            type="button"
-            onClick={() => {
-              setQuery('PKZ-1001');
-              runLookup('PKZ-1001');
-            }}
-            className="underline decoration-dotted hover:text-[#D4AF37] cursor-pointer"
-          >
-            PKZ-1001 (Shipped)
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setQuery('PKZ-1002');
-              runLookup('PKZ-1002');
-            }}
-            className="underline decoration-dotted hover:text-[#D4AF37] cursor-pointer"
-          >
-            PKZ-1002 (Partial COD)
-          </button>
-        </div>
       </div>
 
       {error && (

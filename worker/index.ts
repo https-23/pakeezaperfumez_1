@@ -36,6 +36,7 @@ interface Env {
   ASSETS: Fetcher;
   IMAGES?: R2Bucket;
   ADMIN_PASSWORD?: string;
+  RAZORPAY_KEY_ID?: string;
   RAZORPAY_KEY_SECRET?: string;
 }
 
@@ -77,6 +78,7 @@ async function ensureDbReady(db: D1Database): Promise<void> {
     db.prepare(`CREATE TABLE IF NOT EXISTS coupons (code TEXT PRIMARY KEY, data TEXT NOT NULL)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS reviews (id TEXT PRIMARY KEY, product_id TEXT NOT NULL, data TEXT NOT NULL, created_at TEXT NOT NULL)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS admin_sessions (token TEXT PRIMARY KEY, created_at TEXT NOT NULL)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS payment_intents (gateway_order_id TEXT PRIMARY KEY, amount_paise INTEGER NOT NULL, used INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`),
   ]);
 
   const seeded = await db.prepare(`SELECT value FROM meta WHERE key = 'seeded'`).first<{ value: string }>();
@@ -157,12 +159,104 @@ async function generateOrderId(db: D1Database): Promise<string> {
   return `PKZ-${maxNum + 1}`;
 }
 
+interface PricingResult {
+  subtotal: number;
+  couponDiscount: number;
+  validCouponCode?: string;
+  prepaidDiscount: number;
+  shippingFee: number;
+  total: number;
+  advancePaid: number;
+  balanceDue: number;
+  normalizedMethod: 'prepaid' | 'partial_cod' | 'cod';
+  updatedProducts: Map<string, Product>;
+}
+
+async function computeAuthoritativePricing(
+  db: D1Database,
+  items: Array<Record<string, unknown>>,
+  couponCode: unknown,
+  paymentMethod: unknown,
+  decrementStock: boolean
+): Promise<{ pricing?: PricingResult; error?: string }> {
+  const normalizedMethod: 'prepaid' | 'partial_cod' | 'cod' =
+    paymentMethod === 'partial_cod' ? 'partial_cod' : paymentMethod === 'cod' ? 'cod' : 'prepaid';
+
+  const products = await getAllProducts(db);
+  const updatedProducts = new Map<string, Product>();
+  let subtotal = 0;
+
+  for (const rawItem of items) {
+    if (rawItem.kind === 'sample_kit') {
+      subtotal += 499 * Math.max(1, Number(rawItem.quantity) || 1);
+    } else {
+      const product = products.find((p) => p.id === rawItem.productId);
+      const variant = product?.variants.find((v) => v.id === rawItem.variantId);
+      if (!product || !variant) {
+        return { error: `Selected variant for ${String(rawItem.name || 'item')} is unavailable.` };
+      }
+      const qty = Math.max(1, Number(rawItem.quantity) || 1);
+      if (product.isOutOfStock || variant.stock < qty) {
+        return { error: `${product.name} (${variant.label}) is out of stock.` };
+      }
+      if (decrementStock) {
+        variant.stock -= qty;
+        if (product.variants.every((v) => v.stock <= 0)) {
+          product.isOutOfStock = true;
+        }
+        updatedProducts.set(product.id, product);
+      }
+      subtotal += variant.price * qty;
+    }
+  }
+
+  let couponDiscount = 0;
+  let validCouponCode: string | undefined;
+  if (couponCode) {
+    const cRow = await db
+      .prepare(`SELECT data FROM coupons WHERE code = ?`)
+      .bind(String(couponCode).trim().toUpperCase())
+      .first<{ data: string }>();
+    const coupon = cRow ? (JSON.parse(cRow.data) as Coupon) : null;
+    if (coupon && coupon.isActive && subtotal >= coupon.minOrder) {
+      validCouponCode = coupon.code;
+      couponDiscount =
+        coupon.discountType === 'percent'
+          ? Math.round((subtotal * coupon.value) / 100)
+          : Math.min(subtotal, coupon.value);
+    }
+  }
+
+  const afterCoupon = Math.max(0, subtotal - couponDiscount);
+  const prepaidDiscount = normalizedMethod === 'prepaid' ? Math.round(afterCoupon * 0.05) : 0;
+  const discountedSubtotal = Math.max(0, afterCoupon - prepaidDiscount);
+  const shippingFee = discountedSubtotal === 0 || discountedSubtotal >= 999 ? 0 : 79;
+  const total = discountedSubtotal + shippingFee;
+  const advancePaid =
+    normalizedMethod === 'prepaid' ? total : normalizedMethod === 'partial_cod' ? Math.min(total, 99) : 0;
+  const balanceDue = Math.max(0, total - advancePaid);
+
+  return {
+    pricing: {
+      subtotal,
+      couponDiscount,
+      validCouponCode,
+      prepaidDiscount,
+      shippingFee,
+      total,
+      advancePaid,
+      balanceDue,
+      normalizedMethod,
+      updatedProducts,
+    },
+  };
+}
+
 async function handleApi(request: Request, env: Env, url: URL): Promise<Response> {
   await ensureDbReady(env.DB);
   const { pathname } = url;
   const method = request.method;
   const adminPassword = env.ADMIN_PASSWORD || 'paakeezah2026';
-  const razorpaySecret = env.RAZORPAY_KEY_SECRET || 'paakeezah_demo_secret_key';
 
   // --- Public Storefront APIs ---
   if (method === 'GET' && pathname === '/api/health') {
@@ -171,6 +265,7 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
       brand: 'Pakeeza Perfumez',
       runtime: 'cloudflare-d1',
       r2Connected: Boolean(env.IMAGES),
+      razorpayConfigured: Boolean(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET),
     });
   }
 
@@ -256,25 +351,83 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
     return json({ coupon, discount });
   }
 
-  // --- Payment & Order Creation ---
+  // --- Phase 4: Real Razorpay Order Creation ---
   if (method === 'POST' && pathname === '/api/payments/create-intent') {
-    const body = (await request.json()) as Record<string, unknown>;
-    const amount = Number(body.amount) || 0;
-    if (amount <= 0) return json({ error: 'Invalid payment amount' }, 400);
+    const keyId = env.RAZORPAY_KEY_ID?.trim();
+    const keySecret = env.RAZORPAY_KEY_SECRET?.trim();
+    if (!keyId || !keySecret) {
+      return json(
+        { error: 'Razorpay API keys are not configured in Cloudflare Secrets (RAZORPAY_KEY_ID & RAZORPAY_KEY_SECRET).' },
+        500
+      );
+    }
 
-    const gatewayOrderId = `order_rzp_${randomHex(6)}`;
-    const paymentId = `pay_rzp_${randomHex(6)}`;
-    const signature = await hmacSha256Hex(razorpaySecret, `${gatewayOrderId}|${paymentId}`);
+    const body = (await request.json()) as Record<string, unknown>;
+    const items = body.items;
+    if (!Array.isArray(items) || items.length === 0) {
+      return json({ error: 'Your bag is empty.' }, 400);
+    }
+
+    const { pricing, error: pricingError } = await computeAuthoritativePricing(
+      env.DB,
+      items as Array<Record<string, unknown>>,
+      body.couponCode,
+      body.paymentMethod,
+      false
+    );
+    if (pricingError || !pricing) {
+      return json({ error: pricingError || 'Could not calculate order total.' }, 400);
+    }
+    if (pricing.advancePaid <= 0) {
+      return json({ error: 'Online payment is not required for Direct COD.' }, 400);
+    }
+
+    const amountInPaise = Math.round(pricing.advancePaid * 100);
+    const rzpRes = await fetch('https://api.razorpay.com/v1/orders', {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${btoa(`${keyId}:${keySecret}`)}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        amount: amountInPaise,
+        currency: 'INR',
+        receipt: `pkz_${Date.now()}`,
+        notes: {
+          brand: 'Pakeeza Perfumez',
+          paymentMethod: pricing.normalizedMethod,
+        },
+      }),
+    });
+
+    const rzpData = (await rzpRes.json()) as {
+      id?: string;
+      amount?: number;
+      currency?: string;
+      error?: { description?: string };
+    };
+
+    if (!rzpRes.ok || !rzpData.id) {
+      return json(
+        { error: rzpData.error?.description || 'Failed to initialize Razorpay order.' },
+        502
+      );
+    }
+
+    await env.DB
+      .prepare(`INSERT INTO payment_intents (gateway_order_id, amount_paise, used, created_at) VALUES (?, ?, 0, ?)`)
+      .bind(rzpData.id, amountInPaise, new Date().toISOString())
+      .run();
 
     return json({
-      gatewayOrderId,
-      paymentId,
-      signature,
-      amountInPaise: Math.round(amount * 100),
-      currency: 'INR',
+      keyId,
+      gatewayOrderId: rzpData.id,
+      amountInPaise: rzpData.amount || amountInPaise,
+      currency: rzpData.currency || 'INR',
     });
   }
 
+  // --- Order Placement & Server-Side Razorpay Signature Verification ---
   if (method === 'POST' && pathname === '/api/orders') {
     const body = (await request.json()) as Record<string, unknown>;
     const {
@@ -301,71 +454,43 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
       return json({ error: 'Please enter a valid 6-digit Indian pincode.' }, 400);
     }
 
-    const normalizedMethod =
-      paymentMethod === 'partial_cod' ? 'partial_cod' : paymentMethod === 'cod' ? 'cod' : 'prepaid';
+    const { pricing, error: pricingError } = await computeAuthoritativePricing(
+      env.DB,
+      items as Array<Record<string, unknown>>,
+      couponCode,
+      paymentMethod,
+      true
+    );
+    if (pricingError || !pricing) {
+      return json({ error: pricingError || 'Order calculation failed.' }, 400);
+    }
+
+    const normalizedMethod = pricing.normalizedMethod;
 
     if (normalizedMethod !== 'cod') {
-      if (gatewayOrderId && paymentId && signature) {
-        const expected = await hmacSha256Hex(razorpaySecret, `${gatewayOrderId}|${paymentId}`);
-        if (expected !== signature) {
-          return json({ error: 'Payment signature verification failed.' }, 400);
-        }
-      } else {
+      const keySecret = env.RAZORPAY_KEY_SECRET?.trim();
+      if (!keySecret) {
+        return json({ error: 'Razorpay secret is not configured on the server.' }, 500);
+      }
+      if (!gatewayOrderId || !paymentId || !signature) {
         return json({ error: 'Payment verification required before placing order.' }, 400);
       }
-    }
 
-    const products = await getAllProducts(env.DB);
-    const updatedProducts = new Map<string, Product>();
-    let subtotal = 0;
+      const expected = await hmacSha256Hex(keySecret, `${String(gatewayOrderId)}|${String(paymentId)}`);
+      if (expected !== String(signature)) {
+        return json({ error: 'Payment signature verification failed.' }, 400);
+      }
 
-    for (const rawItem of items as Array<Record<string, unknown>>) {
-      if (rawItem.kind === 'sample_kit') {
-        subtotal += 499 * Math.max(1, Number(rawItem.quantity) || 1);
-      } else {
-        const product = products.find((p) => p.id === rawItem.productId);
-        const variant = product?.variants.find((v) => v.id === rawItem.variantId);
-        if (!product || !variant) {
-          return json({ error: `Selected variant for ${String(rawItem.name)} is unavailable.` }, 400);
-        }
-        const qty = Math.max(1, Number(rawItem.quantity) || 1);
-        if (product.isOutOfStock || variant.stock < qty) {
-          return json({ error: `${product.name} (${variant.label}) is out of stock.` }, 400);
-        }
-        variant.stock -= qty;
-        if (product.variants.every((v) => v.stock <= 0)) {
-          product.isOutOfStock = true;
-        }
-        updatedProducts.set(product.id, product);
-        subtotal += variant.price * qty;
+      const intent = await env.DB
+        .prepare(`SELECT amount_paise, used FROM payment_intents WHERE gateway_order_id = ?`)
+        .bind(String(gatewayOrderId))
+        .first<{ amount_paise: number; used: number }>();
+
+      const expectedPaise = Math.round(pricing.advancePaid * 100);
+      if (!intent || intent.used !== 0 || intent.amount_paise !== expectedPaise) {
+        return json({ error: 'Payment record mismatch or already processed.' }, 400);
       }
     }
-
-    let couponDiscount = 0;
-    let validCouponCode: string | undefined;
-    if (couponCode) {
-      const cRow = await env.DB
-        .prepare(`SELECT data FROM coupons WHERE code = ?`)
-        .bind(String(couponCode).trim().toUpperCase())
-        .first<{ data: string }>();
-      const coupon = cRow ? (JSON.parse(cRow.data) as Coupon) : null;
-      if (coupon && coupon.isActive && subtotal >= coupon.minOrder) {
-        validCouponCode = coupon.code;
-        couponDiscount =
-          coupon.discountType === 'percent'
-            ? Math.round((subtotal * coupon.value) / 100)
-            : Math.min(subtotal, coupon.value);
-      }
-    }
-
-    const afterCoupon = Math.max(0, subtotal - couponDiscount);
-    const prepaidDiscount = normalizedMethod === 'prepaid' ? Math.round(afterCoupon * 0.05) : 0;
-    const discountedSubtotal = Math.max(0, afterCoupon - prepaidDiscount);
-    const shippingFee = discountedSubtotal >= 999 ? 0 : 79;
-    const total = discountedSubtotal + shippingFee;
-    const advancePaid =
-      normalizedMethod === 'prepaid' ? total : normalizedMethod === 'partial_cod' ? Math.min(total, 99) : 0;
-    const balanceDue = Math.max(0, total - advancePaid);
 
     const now = new Date().toISOString();
     const order: Order = {
@@ -385,15 +510,15 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
         variantId: item.variantId ? String(item.variantId) : undefined,
         kitItems: item.kitItems as Order['items'][number]['kitItems'],
       })),
-      subtotal,
-      couponCode: validCouponCode,
-      couponDiscount,
-      prepaidDiscount,
-      shippingFee,
-      total,
+      subtotal: pricing.subtotal,
+      couponCode: pricing.validCouponCode,
+      couponDiscount: pricing.couponDiscount,
+      prepaidDiscount: pricing.prepaidDiscount,
+      shippingFee: pricing.shippingFee,
+      total: pricing.total,
       paymentMethod: normalizedMethod,
-      advancePaid,
-      balanceDue,
+      advancePaid: pricing.advancePaid,
+      balanceDue: pricing.balanceDue,
       paymentStatus:
         normalizedMethod === 'prepaid' ? 'Paid' : normalizedMethod === 'partial_cod' ? 'Partial COD' : 'COD Pending',
       paymentRef: normalizedMethod === 'cod' ? undefined : String(paymentId),
@@ -407,7 +532,12 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
         .prepare(`INSERT INTO orders (id, phone, order_status, data, created_at) VALUES (?, ?, ?, ?, ?)`)
         .bind(order.id, order.phone, order.orderStatus, JSON.stringify(order), order.createdAt),
     ];
-    for (const prod of updatedProducts.values()) {
+    if (normalizedMethod !== 'cod' && gatewayOrderId) {
+      stmts.push(
+        env.DB.prepare(`UPDATE payment_intents SET used = 1 WHERE gateway_order_id = ?`).bind(String(gatewayOrderId))
+      );
+    }
+    for (const prod of pricing.updatedProducts.values()) {
       stmts.push(env.DB.prepare(`UPDATE products SET data = ? WHERE id = ?`).bind(JSON.stringify(prod), prod.id));
     }
     await env.DB.batch(stmts);

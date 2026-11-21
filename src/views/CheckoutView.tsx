@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, CheckCircle2, CreditCard, Lock, MessageCircle, ShieldCheck, Smartphone, X } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Lock, MessageCircle, ShieldCheck } from 'lucide-react';
 import type { CartItem, Coupon, Order, PaymentMethod } from '../types';
 import {
   FREE_SHIPPING_THRESHOLD,
@@ -9,6 +9,50 @@ import {
   formatINR,
 } from '../utils/format';
 import { SafeImage } from '../components/SafeImage';
+
+interface RazorpaySuccessResponse {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+interface RazorpayFailureResponse {
+  error?: {
+    description?: string;
+    reason?: string;
+  };
+}
+
+interface RazorpayInstance {
+  open: () => void;
+  on: (event: 'payment.failed', handler: (response: RazorpayFailureResponse) => void) => void;
+}
+
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  prefill?: {
+    name?: string;
+    contact?: string;
+  };
+  theme?: {
+    color?: string;
+  };
+  handler: (response: RazorpaySuccessResponse) => void;
+  modal?: {
+    ondismiss?: () => void;
+  };
+}
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: RazorpayOptions) => RazorpayInstance;
+  }
+}
 
 interface CheckoutViewProps {
   items: CartItem[];
@@ -33,10 +77,8 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('prepaid');
 
   const [error, setError] = useState<string | null>(null);
-  const [gatewayModalOpen, setGatewayModalOpen] = useState(false);
-  const [gatewayChannel, setGatewayChannel] = useState<'upi' | 'card'>('upi');
-  const [upiId, setUpiId] = useState('');
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [statusLabel, setStatusLabel] = useState('');
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -59,6 +101,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
 
   const handleDirectCodOrder = async () => {
     setProcessingPayment(true);
+    setStatusLabel('Confirming COD Order...');
     setError(null);
     try {
       const orderRes = await fetch('/api/orders', {
@@ -83,6 +126,108 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
       setError(err instanceof Error ? err.message : 'Checkout failed. Please try again.');
     } finally {
       setProcessingPayment(false);
+      setStatusLabel('');
+    }
+  };
+
+  const handleRazorpayPayment = async () => {
+    if (!window.Razorpay) {
+      setError('Payment gateway failed to load. Please refresh the page and try again.');
+      return;
+    }
+
+    setProcessingPayment(true);
+    setStatusLabel('Opening Razorpay...');
+    setError(null);
+
+    try {
+      const intentRes = await fetch('/api/payments/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items,
+          couponCode: appliedCoupon?.coupon.code,
+          paymentMethod,
+        }),
+      });
+      const intentData = await intentRes.json();
+      if (!intentRes.ok) {
+        throw new Error(intentData.error || 'Could not start Razorpay payment.');
+      }
+
+      const rzp = new window.Razorpay({
+        key: intentData.keyId,
+        amount: intentData.amountInPaise,
+        currency: intentData.currency || 'INR',
+        name: 'Pakeeza Perfumez',
+        description:
+          paymentMethod === 'partial_cod'
+            ? '₹99 Partial COD Booking Advance'
+            : 'Prepaid Fragrance Order',
+        order_id: intentData.gatewayOrderId,
+        prefill: {
+          name: customerName.trim(),
+          contact: phone.trim(),
+        },
+        theme: {
+          color: '#D4AF37',
+        },
+        handler: async (response: RazorpaySuccessResponse) => {
+          setStatusLabel('Verifying Payment...');
+          try {
+            const orderRes = await fetch('/api/orders', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                customerName,
+                phone,
+                address,
+                city,
+                pincode,
+                items,
+                couponCode: appliedCoupon?.coupon.code,
+                paymentMethod,
+                gatewayOrderId: response.razorpay_order_id,
+                paymentId: response.razorpay_payment_id,
+                signature: response.razorpay_signature,
+              }),
+            });
+            const orderData = await orderRes.json();
+            if (!orderRes.ok) {
+              throw new Error(orderData.error || 'Payment verification failed.');
+            }
+            setConfirmedOrder(orderData.order);
+            onOrderCompleted(orderData.order);
+          } catch (err) {
+            setError(
+              err instanceof Error
+                ? err.message
+                : 'Payment received, but order confirmation failed. Contact support with your payment ID.'
+            );
+          } finally {
+            setProcessingPayment(false);
+            setStatusLabel('');
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setProcessingPayment(false);
+            setStatusLabel('');
+          },
+        },
+      });
+
+      rzp.on('payment.failed', (resp: RazorpayFailureResponse) => {
+        setError(resp.error?.description || 'Payment failed or was declined. Please try again.');
+        setProcessingPayment(false);
+        setStatusLabel('');
+      });
+
+      rzp.open();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to start Razorpay checkout.');
+      setProcessingPayment(false);
+      setStatusLabel('');
     }
   };
 
@@ -105,52 +250,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
       handleDirectCodOrder();
       return;
     }
-    setGatewayModalOpen(true);
-  };
-
-  const handleConfirmGatewayPayment = async () => {
-    setProcessingPayment(true);
-    setError(null);
-    try {
-      // 1. Create server-signed payment intent
-      const intentRes = await fetch('/api/payments/create-intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: payableNow }),
-      });
-      const intentData = await intentRes.json();
-      if (!intentRes.ok) throw new Error(intentData.error || 'Payment initialization failed');
-
-      // 2. Submit order with signed verification payload
-      const orderRes = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerName,
-          phone,
-          address,
-          city,
-          pincode,
-          items,
-          couponCode: appliedCoupon?.coupon.code,
-          paymentMethod,
-          gatewayOrderId: intentData.gatewayOrderId,
-          paymentId: intentData.paymentId,
-          signature: intentData.signature,
-        }),
-      });
-      const orderData = await orderRes.json();
-      if (!orderRes.ok) throw new Error(orderData.error || 'Order placement failed');
-
-      setGatewayModalOpen(false);
-      setConfirmedOrder(orderData.order);
-      onOrderCompleted(orderData.order);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Checkout failed. Please try again.');
-      setGatewayModalOpen(false);
-    } finally {
-      setProcessingPayment(false);
-    }
+    handleRazorpayPayment();
   };
 
   if (confirmedOrder) {
@@ -482,7 +582,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
               <Lock className="h-3.5 w-3.5" />
               <span>
                 {processingPayment
-                  ? 'Confirming Order...'
+                  ? statusLabel || 'Processing...'
                   : paymentMethod === 'cod'
                   ? `Confirm Direct COD Order (${formatINR(total)})`
                   : `Pay ${formatINR(payableNow)} & Place Order`}
@@ -491,104 +591,11 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
 
             <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-[#A19D94]">
               <ShieldCheck className="h-4 w-4 text-[#D4AF37]" />
-              <span>256-bit Encrypted Razorpay Checkout Flow</span>
+              <span>Secured by Razorpay · UPI, Cards &amp; NetBanking</span>
             </div>
           </div>
         </div>
       </form>
-
-      {/* Razorpay-Style Payment Verification Modal */}
-      {gatewayModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md border border-white/15 bg-[#141416] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/[0.08] bg-[#18181B] px-6 py-4">
-              <div>
-                <p className="text-[11px] font-medium tracking-wider text-[#D4AF37] uppercase">
-                  Pakeeza Perfumez Checkout
-                </p>
-                <p className="mt-0.5 text-lg font-semibold tabular-nums text-[#F5F2EB]">
-                  Pay {formatINR(payableNow)}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setGatewayModalOpen(false)}
-                className="p-1 text-[#A19D94] hover:text-[#F5F2EB] cursor-pointer"
-                aria-label="Cancel payment"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setGatewayChannel('upi')}
-                  className={`flex items-center justify-center gap-2 border py-2.5 text-xs font-medium cursor-pointer ${
-                    gatewayChannel === 'upi'
-                      ? 'border-[#D4AF37] bg-[#D4AF37]/10 text-[#F5F2EB]'
-                      : 'border-white/15 text-[#A19D94]'
-                  }`}
-                >
-                  <Smartphone className="h-4 w-4 text-[#D4AF37]" />
-                  <span>UPI / GPay / PhonePe</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGatewayChannel('card')}
-                  className={`flex items-center justify-center gap-2 border py-2.5 text-xs font-medium cursor-pointer ${
-                    gatewayChannel === 'card'
-                      ? 'border-[#D4AF37] bg-[#D4AF37]/10 text-[#F5F2EB]'
-                      : 'border-white/15 text-[#A19D94]'
-                  }`}
-                >
-                  <CreditCard className="h-4 w-4 text-[#D4AF37]" />
-                  <span>Card / NetBanking</span>
-                </button>
-              </div>
-
-              {gatewayChannel === 'upi' ? (
-                <div className="mt-5 space-y-4">
-                  <div className="border border-white/10 bg-[#0D0D0D] p-4 text-center">
-                    <p className="text-xs text-[#A19D94]">
-                      Instant UPI Verification · PhonePe / GPay / Paytm
-                    </p>
-                    <input
-                      type="text"
-                      value={upiId}
-                      onChange={(e) => setUpiId(e.target.value)}
-                      placeholder="Enter UPI ID (optional, e.g. name@oksbi)"
-                      className="mt-3 w-full border border-white/15 bg-[#141416] px-3 py-2 text-xs text-[#F5F2EB] focus:border-[#D4AF37] focus:outline-none"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-5 space-y-3 border border-white/10 bg-[#0D0D0D] p-4">
-                  <p className="text-xs text-[#A19D94]">
-                    Visa / Mastercard / RuPay encrypted verification
-                  </p>
-                  <input
-                    type="text"
-                    defaultValue="4242 •••• •••• 4242"
-                    aria-label="Card number"
-                    className="w-full border border-white/15 bg-[#141416] px-3 py-2 text-xs font-mono text-[#F5F2EB]"
-                  />
-                </div>
-              )}
-
-              <button
-                type="button"
-                disabled={processingPayment}
-                onClick={handleConfirmGatewayPayment}
-                className="mt-6 flex w-full items-center justify-center gap-2 bg-[#D4AF37] py-3.5 text-xs font-semibold tracking-wider text-[#0D0D0D] uppercase transition-colors hover:bg-[#E2C258] disabled:opacity-60 cursor-pointer"
-              >
-                {processingPayment ? 'Verifying Signature...' : `Complete Payment (${formatINR(payableNow)})`}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 };
